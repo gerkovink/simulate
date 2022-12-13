@@ -1,0 +1,521 @@
+---
+title: "Strategies for simulating missingness"
+author: Gerko Vink
+orcid: 0000-0001-9767-1924
+date: 12 December 2022
+bibliography: bibliography.bib
+link-citations: true
+format: 
+  html:
+    toc: true
+---
+
+
+---
+
+# Aim
+The aim of this document is to outline several strategies for simulation missingness that allow for valid inferences. I will focus on three types of methods for evaluating imputation procedures: model-based simulation, design-based simulation and methods that depart from a single finite set wherin only missingness is induced. 
+
+---
+
+# Analysis model
+The analysis model is a simple linear regression model. In all simulation scenarios I will use 3 variables/features: an outcome $y$ and 2 predictors $x$ and $z$, such that 
+
+$$y = x + z + \varepsilon.$$
+
+I will evaluate the analysis model on the imputed data and on the complete cases in order to demonstrate the effect of the missingness. 
+
+---
+
+# Missingness generation
+All missingness will be simulated with the `ampute()` function [@ampute] from package `mice` [@mice]. To illustrate the simluation approaches, I will induce missingness according to an MCAR [@rubi76] and right-tailed MAR [@scho18] mechanism. 
+
+---
+
+# `R` packages
+I use the following packages in this document
+
+```{r package, message=FALSE, warning=FALSE}
+library(mice)     # for imputation and amputation
+library(purrr)    # for functional programming
+library(furrr)    # for functional futures
+library(magrittr) # for pipes
+library(dplyr)    # for data manipulation
+library(tibble)   # for tibbles
+```
+
+
+I also fix the `RNG` seed to allow for full reproduction of the findings:
+
+```{r seed}
+set.seed(123)     # get the same as I got
+```
+
+
+---
+
+# Model-based simulation
+The first strategy I outline is model-based simulation, where a theoretical model is used to sample the data from. The estimand - or true parameter - will be the parameter value in the theoretical population where I sample from. 
+
+Let's keep it simple and use a multivariate normal model to sample our data from. In this case, we generate a predictor space $(x,z)$ by drawing data from a multivariate normal distribution with means
+
+$$
+\mu = 
+\begin{pmatrix}
+8 \\
+3
+\end{pmatrix}, 
+$$
+and variance-covariance matrix
+
+$$
+\Sigma = 
+\begin{pmatrix}
+1 & .2 \\
+.2 & 1
+\end{pmatrix}.
+$$
+Let's generate the simulation data by drawing a predictor space from a multivariate normal distribution with package `mvtnorm` [@mvtnorm] in `R` [@Rstats]. I also add the outcome $y$ following 
+
+$$y = 6x + 3z + \varepsilon, $$
+
+where $\varepsilon = \mathcal{N}(0, 1)$. The following code realizes this:
+
+
+```{r simdata, cache = TRUE}
+sigma <- matrix(data = c(1, 0.7, 0.7, 1), 
+                ncol = 2)
+simdata <- replicate(n = 1000, 
+                     expr = mvtnorm::rmvnorm(n = 1000, 
+                                             mean = c(8, 3), 
+                                             sigma = sigma) %>% 
+                       as_tibble() %>% # make into a tibble
+                       rename(x = V1, z = V2) %>% # rename columns
+                       mutate(y = 6 * x + 3 * z + rnorm(1000)), # add y
+                     simplify = FALSE) # keep as list of generated sets
+```
+
+
+The `simdata` object is a list with 1000 sampled data sets. For every data set there is an $y$, an $x$ and a $z$ variable. 
+
+```{r}
+simdata[[1]] %>% # the first simulated set
+  head()
+```
+
+
+We'd expect that the data would approximate $y = 6x + 3z$ as the data are generated that way. But, since we are simulating, we can verify:
+
+```{r}
+simdata %>% 
+  map(~.x %$% # for every simulated set in simdata....
+        lm(y ~ x + z) %>% # fit linear model
+        coefficients) %>% # extract coefficients
+  Reduce("+", .) / length(simdata) # add all and divide by length (= average)
+```
+
+We see indeed that the average simulated set approximates the true parameters for the $Intercept$, for $x$ and for $z$. 
+
+---
+
+### Simulate MCAR missingness
+Now, let's use a future to set up the amputation and imputation in a computationally efficient manner. We'll start with the MCAR simulation:
+
+```{r modelMCAR, cache=TRUE}
+mbased_MCAR <- 
+  simdata %>%
+  furrr::future_map(function(x) {
+    x %>% 
+      ampute(prop = .5, 
+             mech = "MCAR") %>% .$amp %>% 
+      mice(m = 5, 
+           maxit = 5,
+           method = "norm",
+           print = F)
+  }, .options = furrr_options(seed = 123))
+```
+
+
+The object `mbased_MCAR` is a list where each listed element is a multiply imputed data set (`mice` class `mids`). 
+
+```{r}
+mbased_MCAR[[1]]
+```
+
+
+All `mids` objects contain the incomplete ata, so there is no need to store that seperately. It can easily be extracted from the `mids` object, e.g.:
+
+```{r}
+mbased_MCAR[[1]]$data %>% 
+  head()
+```
+
+A simple evaluation of the analysis model would demonstrate that the results are unbiased under MCAR:
+
+```{r cache=TRUE}
+mbased_MCAR %>% 
+  map(~.x %>% # for every simulated multiple imputation....
+        complete("all") %>% # create a list of completed data sets
+        map(~.x %$% # for every completed data set....
+              lm(y ~ x + z)) %>% # fit linear model
+              pool() %>%  # pool coefficients
+              summary(conf.int = TRUE) %>% # summary of coefficients
+              mutate(true = c(0, 6, 3), # add true
+                     cov = `2.5 %` < true & true < `97.5 %`, # coverage
+                     bias = estimate - true) %>% # bias
+              column_to_rownames("term")) %>% # `term` as rownames
+      Reduce("+", .) / length(mbased_MCAR) # add all and divide by length 
+```
+
+
+The results demonstrate that the estimates are unbiased and confidence valid cf. [@neym34]. 
+
+---
+
+### Simulate MAR missingness
+We can easily replicate the above example for a right-tailed MAR mechanism by adapting the following code changes to the simulation:
+
+```{r cache=TRUE}
+mbased_MAR <- 
+  simdata %>%
+  furrr::future_map(function(x) {
+    x %>% 
+      ampute(prop = .5, 
+             mech = "MAR", type = "RIGHT") %>% .$amp %>% 
+      mice(m = 5, 
+           maxit = 5,
+           method = "norm",
+           print = F)
+  }, .options = furrr_options(seed = 123))
+```
+
+
+and to the evaluation:
+
+```{r cache=TRUE}
+mbased_MAR %>% 
+  map(~.x %>% # for every simulated multiple imputation....
+        complete("all") %>% # create a list of completed data sets
+        map(~.x %$% # for every completed data set....
+              lm(y ~ x + z)) %>% # fit linear model
+              pool() %>%  # pool coefficients
+              summary(conf.int = TRUE) %>% # summary of coefficients
+              mutate(true = c(0, 6, 3), # add true
+                     cov = `2.5 %` < true & true < `97.5 %`, # coverage
+                     bias = estimate - true) %>% # bias
+              column_to_rownames("term")) %>% # `term` as rownames
+      Reduce("+", .) / length(mbased_MCAR) # add all and divide by length 
+```
+
+
+
+---
+
+# Design-based simulation
+
+With design-based simulation, a smaller set is usually sampled from a sufficiently large register or population. This type of simulation design is often deployed when a real-life data source is available, such as in e.g. medical or official statistics. 
+
+## Generating a sufficiently large population
+We continue with the previously used multivariate normal model, but now sample a true set of size 1,000,000 cases. The easiest and most computationally convenient approach to realizing this, would be to bind the 1000 sets from `simdata` together into a long format:
+
+```{r truth, cache=TRUE}
+truth <- simdata %>% 
+  do.call("rbind", .)
+```
+
+
+The resulting object `truth` is a `r dim(truth)[1]` by `r dim(truth)[2]` `tibble`.
+
+```{r}
+truth 
+```
+
+
+Alternatively, we could have resampled 1,000,000 rows from the theoretical distribution by the previously used strategy. 
+
+```{r eval = FALSE}
+# Not executed, presented as alternative to the above code chunk
+truth <- mvtnorm::rmvnorm(n = 1000000, 
+                          sigma = sigma) %>% 
+  as_tibble() %>% # make into a tibble
+  rename(x = V1, z = V2) %>% # rename columns
+  mutate(y = 6 * x + 3 * z + rnorm(1000000))# add y
+```
+
+
+Both strategies are equivalent as the sampled random values or rows are always independent.
+
+From the `simdata` object, we can sample our 1000 samples cf. the previously strategy with `replicate()`:
+
+```{r dbasedsimdata, cache=TRUE}
+simdata <- replicate(n = 1000, 
+                     # sample rows
+                     expr = truth[sample(1:1000000, 1000, replace = FALSE), ], 
+                     simplify = FALSE) 
+```
+
+
+We now have the necessary list of simulated data sets to commence with the simulations for MCAR and MAR:
+
+
+```{r dbased, cache=TRUE}
+dbased <- list(
+  MCAR = simdata %>%
+    furrr::future_map(function(x) {
+      x %>% 
+        ampute(prop = .5, 
+               mech = "MCAR") %>% .$amp %>% 
+        mice(m = 5, 
+             maxit = 5,
+             method = "norm",
+             print = F)
+    }, .options = furrr_options(seed = 123)),
+  MAR = simdata %>%
+    furrr::future_map(function(x) {
+      x %>% 
+        ampute(prop = .5, 
+               mech = "MAR", type = "RIGHT") %>% .$amp %>% 
+        mice(m = 5, 
+             maxit = 5,
+             method = "norm",
+             print = F)
+    }, .options = furrr_options(seed = 123))
+)
+```
+
+
+The list `dbased` contains the simulations for both the MCAR and MAR simulations. We have to establish the true parameters from the designed set
+
+```{r}
+true <- truth %$% 
+  lm(y ~ x + z) %>% 
+  coefficients()
+true
+```
+
+
+and use this as the comparative truth in our evaluations
+
+
+```{r dbasedeval, cache=TRUE}
+dbased %>% 
+  map(~.x %>% # for every missingness mechanism
+    map(~.x %>% # for every simulated multiple imputation....
+        complete("all") %>% # create a list of completed data sets
+        map(~.x %$% # for every completed data set....
+              lm(y ~ x + z) # fit linear model
+        ) %>% 
+          pool() %>%  # pool coefficients
+          summary(conf.int = TRUE) %>% # summary of coefficients
+          mutate(true = true, # add true
+                 cov = `2.5 %` < true & true < `97.5 %`, # coverage
+                 bias = estimate - true) %>% # bias
+          column_to_rownames("term") # `term` as rownames
+    ) %>% 
+      Reduce("+", .) / length(mbased_MCAR)
+  )
+```
+
+
+---
+
+# Using a finite *population*
+Instead of sampling data from a large data set or from a theoretical model, we can also take a single finite observed set as our comparative truth. With missing data simulations, this means that we can eliminate sampling variance from the evaluations of the imputation performance [@vink14]. 
+
+[@rubi87] defined $Q$ as the quantity of interest (possibly a vector) and $U$ as its variance. With multiple imputation, $m$ complete data estimates can be averaged as
+$$\bar{Q}=\frac{1}{m}\sum^{m}_{l=1}{ \hat{Q}}_{l},$$
+
+where $\hat Q_l$ is an estimate of $Q$ from the $l$-th imputed
+data set. Let $\bar U_l$ be the estimated variance-covariance matrix of
+$\hat Q_l$. The complete data variances of $Q$ can be combined by
+
+$$\bar{U}=\frac{1}{m}\sum^{m}_{l=1}{ {\bar U}}_{l}.$$
+The variance between the complete data estimates can be calculated as
+
+$$B=\frac{1}{m-1}\sum^{m}_{l=1}(\hat{ Q}_l-\bar{Q})^\prime(\hat{ Q}_l-\bar{Q}).$$
+
+The total variance of $({ Q}-\bar{Q})$ is defined as 
+
+$$T=\bar{U}+B+B/m.$$
+
+For populations for which all units are recorded, the average complete data variance $\bar{U}$ of $Q$ equals zero - there is no sampling variation - and the total variance of $({Q}-\bar{Q})$ simplifies to 
+
+$$T=B+B/m.$$
+As a consequence, the relative increase in variance due to nonresponse equals
+
+$$r = (1+{m^{-1}}) B/\bar{U}= \infty, %(1+{m^{-1}}) B/0= \infty$$
+
+and the degrees of freedom $\nu$ can be set to
+
+$$\nu = (m-1)(1+r^{-1})^2=m-1.$$
+In simulation, we can make use of this property by taking a single finite complete set as our comparative truth and only induce missingness in it. The induced missingness would then serve as the necessary Monte Carlo variation. 
+
+### Model-based finite populations
+To demonstrate the validity of the above approach, we will draw a single finite set from the before used multivariate normal distribution:
+
+```{r}
+truth <- mvtnorm::rmvnorm(n = 200,
+                          sigma = sigma) %>%
+  magrittr::set_colnames(c("x", "z")) %>% # add column names
+  as_tibble() %>% # convert to tibble
+  mutate(y = 6 * x + 3 * z + rnorm(200)) # add y
+```
+
+
+We perform the simulations as per our outlined simulation set-up, with the difference that our finite object `truth` now serves as the root of simulation and no sampling of cases is performed, other than the usual sampling of MCAR or right-tailed MAR missingness. 
+
+```{r mbasedfinite, cache = TRUE}
+mbased_finite <- list(
+  MCAR = furrr::future_map(1:1000, ~ { # map over 1000 sims
+      truth %>% 
+        ampute(prop = .5, 
+               mech = "MCAR") %>% .$amp %>% 
+        mice(m = 5, 
+             maxit = 5,
+             method = "norm",
+             print = F)
+    }, .options = furrr_options(seed = 123)),
+  MAR = furrr::future_map(1:1000, ~ { # map over 1000 sims
+      truth %>% 
+        ampute(prop = .5, 
+               mech = "MAR", type = "RIGHT") %>% .$amp %>% 
+        mice(m = 5, 
+             maxit = 5,
+             method = "norm",
+             print = F)
+    }, .options = furrr_options(seed = 123))
+)
+```
+
+
+We can evaluate the simulations by excluding the average sampling variance $\bar{U}$ (`ubar` in `mice`) from the total variance calculations. First, we extract the true *estimand* from the finite set `truth`:
+
+```{r}
+true <- truth %$% 
+  lm(y ~ x + z) %>% 
+  coefficients()
+true
+```
+
+
+Next, we evaluate the imputations agains `truth`:
+
+```{r mbasedevalfinite, cache=TRUE}
+mbased_finite %>% 
+  map(~.x %>% # for every missingness mechanism
+    map(~.x %>% # for every simulated multiple imputation....
+        complete("all") %>% # create a list of completed data sets
+        map(~.x %$% # for every completed data set....
+              lm(y ~ x + z) # fit linear model
+        ) %>% 
+          pool(custom.t = ".data$b + .data$b / .data$m") %>%  # pool coefficients
+          summary() %>% # summary of coefficients
+          mutate(true = true, # add true
+                 df = 4,  # correct df
+                 riv = Inf, # correct riv
+                 p.value = 2 * (pt(abs(statistic), 
+                                   pmax(df, 0.001), 
+                                   lower.tail = FALSE)), # correct p.value
+                 `2.5 %` = estimate - qt(.975, df) * std.error, # lower bound CI
+                 `97.5 %` = estimate + qt(.975, df) * std.error, # upper bound CI
+                 cov = `2.5 %` < true & true < `97.5 %`, # coverage
+                 bias = estimate - true) %>% # bias
+          column_to_rownames("term") # `term` as rownames
+    ) %>% 
+      Reduce("+", .) / length(mbased_MCAR)
+  )
+```
+
+
+We can see that this adjusted variance simulation set-up yields valid inferences and allows for sharp comparisons between simulation scenarios and - if applicable - simulation methods. 
+
+Note that in the above code - despite the correct variance calculations - the following estimates needed manual adjustment: `df`, `riv` and `p.value`. 
+The line `pool(custom.t = ".data$b + .data$b / .data$m")` ensures that the estimates, total variance, standard error and the test-statistic are correctly calculated. Since all other calculations depend on those estimates, a simple manual calculation of intervals and coverages suffices. 
+
+### Design-based finite populations
+To demonstrate the validity of the finite population approach on design-based simulations, we will use the finite population created earlier:
+
+```{r}
+truth <- simdata %>% 
+  do.call("rbind", .)
+```
+
+
+We perform the simulations as per our outlined simulation set-up, with the difference that our finite object `truth` now serves as the root of simulation and no sampling of cases is performed, other than the usual sampling of MCAR or right-tailed MAR missingness. 
+
+```{r dbasedfinite, cache = TRUE}
+dbased_finite <- list(
+  MCAR = furrr::future_map(1:1000, ~ { # map over 1000 sims
+      truth %>% 
+        ampute(prop = .5, 
+               mech = "MCAR") %>% .$amp %>% 
+        mice(m = 5, 
+             maxit = 5,
+             method = "norm",
+             print = F)
+    }, .options = furrr_options(seed = 123)),
+  MAR = furrr::future_map(1:1000, ~ { # map over 1000 sims
+      truth %>% 
+        ampute(prop = .5, 
+               mech = "MAR", type = "RIGHT") %>% .$amp %>% 
+        mice(m = 5, 
+             maxit = 5,
+             method = "norm",
+             print = F)
+    }, .options = furrr_options(seed = 123))
+)
+```
+
+
+We can evaluate the simulations by excluding the average sampling variance $\bar{U}$ (`ubar` in `mice`) from the total variance calculations. First, we extract the true *estimand* from the finite set `truth`:
+
+```{r}
+true <- truth %$% 
+  lm(y ~ x + z) %>% 
+  coefficients()
+true
+```
+
+
+Next, we evaluate the imputations agains `truth`:
+
+```{r dbasedevalfinite, cache = TRUE}
+dbased_finite %>% 
+  map(~.x %>% # for every missingness mechanism
+    map(~.x %>% # for every simulated multiple imputation....
+        complete("all") %>% # create a list of completed data sets
+        map(~.x %$% # for every completed data set....
+              lm(y ~ x + z) # fit linear model
+        ) %>% 
+          pool(custom.t = ".data$b + .data$b / .data$m") %>%  # pool coefficients
+          summary() %>% # summary of coefficients
+          mutate(true = true, # add true
+                 df = 4,  # correct df
+                 riv = Inf, # correct riv
+                 p.value = 2 * (pt(abs(statistic), 
+                                   pmax(df, 0.001), 
+                                   lower.tail = FALSE)), # correct p.value
+                 `2.5 %` = estimate - qt(.975, df) * std.error, # lower bound CI
+                 `97.5 %` = estimate + qt(.975, df) * std.error, # upper bound CI
+                 cov = `2.5 %` < true & true < `97.5 %`, # coverage
+                 bias = estimate - true) %>% # bias
+          column_to_rownames("term") # `term` as rownames
+    ) %>% 
+      Reduce("+", .) / length(mbased_MCAR)
+  )
+```
+
+
+We can see that this adjusted variance simulation set-up also yields valid inferences for design based simulations on a single finite set. 
+
+
+# Conclusion
+
+---
+
+# Session info
+
+```{r}
+sessionInfo()
+```
+
