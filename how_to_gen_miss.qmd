@@ -364,11 +364,13 @@ mbased_finite %>%
         map(~.x %$% # for every completed data set....
               lm(y ~ x + z) # fit linear model
         ) %>% 
-          pool(custom.t = ".data$b + .data$b / .data$m") %>%  # pool coefficients
-          summary() %>% # summary of coefficients
+          pool(custom.t = ".data$b + .data$b / .data$m") %>% # pool coefficients
+          .$pooled %>% # extract table of pooled coefficients
           mutate(true = true, # add true
-                 df = 4,  # correct df
+                 df = m-1,  # correct df
                  riv = Inf, # correct riv
+                 std.error = sqrt(t), # standard error
+                 statistic = estimate / std.error, # test statistic
                  p.value = 2 * (pt(abs(statistic), 
                                    pmax(df, 0.001), 
                                    lower.tail = FALSE)), # correct p.value
@@ -376,6 +378,8 @@ mbased_finite %>%
                  `97.5 %` = estimate + qt(.975, df) * std.error, # upper bound CI
                  cov = `2.5 %` < true & true < `97.5 %`, # coverage
                  bias = estimate - true) %>% # bias
+          select(term, m, true, estimate, std.error, statistic, p.value, 
+                 riv, `2.5 %`, `97.5 %`, cov, bias) %>% 
           column_to_rownames("term") # `term` as rownames
     ) %>% 
       Reduce("+", .) / length(mbased_MCAR)
@@ -388,10 +392,10 @@ Note that in the above code - despite the correct variance calculations - the fo
 The line `pool(custom.t = ".data$b + .data$b / .data$m")` ensures that the estimates, total variance, standard error and the test-statistic are correctly calculated. Since all other calculations depend on those estimates, a simple manual calculation of intervals and coverages suffices. 
 
 ### Design-based finite populations
-To demonstrate the validity of the finite population approach on design-based simulations, we will use the finite population created earlier:
+To demonstrate the validity of the finite population approach on design-based simulations, we will use one of the sampled sets from the design-based simulation section above. 
 ```{r}
-truth <- simdata %>% 
-  do.call("rbind", .)
+which <- sample(1:length(simdata), 1)
+truth <- simdata[[which]]
 ```
 
 We perform the simulations as per our outlined simulation set-up, with the difference that our finite object `truth` now serves as the root of simulation and no sampling of cases is performed, other than the usual sampling of MCAR or right-tailed MAR missingness. 
@@ -435,11 +439,13 @@ dbased_finite %>%
         map(~.x %$% # for every completed data set....
               lm(y ~ x + z) # fit linear model
         ) %>% 
-          pool(custom.t = ".data$b + .data$b / .data$m") %>%  # pool coefficients
-          summary() %>% # summary of coefficients
+          pool(custom.t = ".data$b + .data$b / .data$m") %>% # pool coefficients
+          .$pooled %>% # extract table of pooled coefficients
           mutate(true = true, # add true
-                 df = 4,  # correct df
+                 df = m-1,  # correct df
                  riv = Inf, # correct riv
+                 std.error = sqrt(t), # standard error
+                 statistic = estimate / std.error, # test statistic
                  p.value = 2 * (pt(abs(statistic), 
                                    pmax(df, 0.001), 
                                    lower.tail = FALSE)), # correct p.value
@@ -447,6 +453,8 @@ dbased_finite %>%
                  `97.5 %` = estimate + qt(.975, df) * std.error, # upper bound CI
                  cov = `2.5 %` < true & true < `97.5 %`, # coverage
                  bias = estimate - true) %>% # bias
+          select(term, m, true, estimate, std.error, statistic, p.value, 
+                 riv, `2.5 %`, `97.5 %`, cov, bias) %>% 
           column_to_rownames("term") # `term` as rownames
     ) %>% 
       Reduce("+", .) / length(mbased_MCAR)

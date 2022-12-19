@@ -588,7 +588,7 @@ z           3.1257064 56.985399   0 -53.993339</code></pre>
 </div>
 </div>
 <p>Next, we evaluate the imputations agains <code>truth</code>:</p>
-<div class="cell">
+<div class="cell" data-hash="how_to_gen_miss_cache/html/mbasedevalfinite_f44a69e16e6e2a90e5b4951c8f3473ab">
 <div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>mbased_finite <span class="sc">%&gt;%</span> </span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(<span class="sc">~</span>.x <span class="sc">%&gt;%</span> <span class="co"># for every missingness mechanism</span></span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">map</span>(<span class="sc">~</span>.x <span class="sc">%&gt;%</span> <span class="co"># for every simulated multiple imputation....</span></span>
@@ -596,48 +596,144 @@ z           3.1257064 56.985399   0 -53.993339</code></pre>
 <span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">map</span>(<span class="sc">~</span>.x <span class="sc">%$%</span> <span class="co"># for every completed data set....</span></span>
 <span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>              <span class="fu">lm</span>(y <span class="sc">~</span> x <span class="sc">+</span> z) <span class="co"># fit linear model</span></span>
 <span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">%&gt;%</span> </span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>          <span class="fu">pool</span>(<span class="at">custom.t =</span> <span class="st">".data$b + .data$b / .data$m"</span>) <span class="sc">%&gt;%</span>  <span class="co"># pool coefficients</span></span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>          <span class="fu">summary</span>() <span class="sc">%&gt;%</span> <span class="co"># summary of coefficients</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>          <span class="fu">pool</span>(<span class="at">custom.t =</span> <span class="st">".data$b + .data$b / .data$m"</span>) <span class="sc">%&gt;%</span> <span class="co"># pool coefficients</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>          .<span class="sc">$</span>pooled <span class="sc">%&gt;%</span> <span class="co"># extract table of pooled coefficients</span></span>
 <span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>          <span class="fu">mutate</span>(<span class="at">true =</span> true, <span class="co"># add true</span></span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>                 <span class="at">df =</span> <span class="dv">4</span>,  <span class="co"># correct df</span></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>                 <span class="at">df =</span> m<span class="dv">-1</span>,  <span class="co"># correct df</span></span>
 <span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>                 <span class="at">riv =</span> <span class="cn">Inf</span>, <span class="co"># correct riv</span></span>
-<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>                 <span class="at">p.value =</span> <span class="dv">2</span> <span class="sc">*</span> (<span class="fu">pt</span>(<span class="fu">abs</span>(statistic), </span>
-<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>                                   <span class="fu">pmax</span>(df, <span class="fl">0.001</span>), </span>
-<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">lower.tail =</span> <span class="cn">FALSE</span>)), <span class="co"># correct p.value</span></span>
-<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>                 <span class="st">`</span><span class="at">2.5 %</span><span class="st">`</span> <span class="ot">=</span> estimate <span class="sc">-</span> <span class="fu">qt</span>(.<span class="dv">975</span>, df) <span class="sc">*</span> std.error, <span class="co"># lower bound CI</span></span>
-<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>                 <span class="st">`</span><span class="at">97.5 %</span><span class="st">`</span> <span class="ot">=</span> estimate <span class="sc">+</span> <span class="fu">qt</span>(.<span class="dv">975</span>, df) <span class="sc">*</span> std.error, <span class="co"># upper bound CI</span></span>
-<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>                 <span class="at">cov =</span> <span class="st">`</span><span class="at">2.5 %</span><span class="st">`</span> <span class="sc">&lt;</span> true <span class="sc">&amp;</span> true <span class="sc">&lt;</span> <span class="st">`</span><span class="at">97.5 %</span><span class="st">`</span>, <span class="co"># coverage</span></span>
-<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>                 <span class="at">bias =</span> estimate <span class="sc">-</span> true) <span class="sc">%&gt;%</span> <span class="co"># bias</span></span>
-<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>          <span class="fu">column_to_rownames</span>(<span class="st">"term"</span>) <span class="co"># `term` as rownames</span></span>
-<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span> </span>
-<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>      <span class="fu">Reduce</span>(<span class="st">"+"</span>, .) <span class="sc">/</span> <span class="fu">length</span>(mbased_MCAR)</span>
-<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>                 <span class="at">std.error =</span> <span class="fu">sqrt</span>(t), <span class="co"># standard error</span></span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>                 <span class="at">statistic =</span> estimate <span class="sc">/</span> std.error, <span class="co"># test statistic</span></span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>                 <span class="at">p.value =</span> <span class="dv">2</span> <span class="sc">*</span> (<span class="fu">pt</span>(<span class="fu">abs</span>(statistic), </span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>                                   <span class="fu">pmax</span>(df, <span class="fl">0.001</span>), </span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">lower.tail =</span> <span class="cn">FALSE</span>)), <span class="co"># correct p.value</span></span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>                 <span class="st">`</span><span class="at">2.5 %</span><span class="st">`</span> <span class="ot">=</span> estimate <span class="sc">-</span> <span class="fu">qt</span>(.<span class="dv">975</span>, df) <span class="sc">*</span> std.error, <span class="co"># lower bound CI</span></span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>                 <span class="st">`</span><span class="at">97.5 %</span><span class="st">`</span> <span class="ot">=</span> estimate <span class="sc">+</span> <span class="fu">qt</span>(.<span class="dv">975</span>, df) <span class="sc">*</span> std.error, <span class="co"># upper bound CI</span></span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>                 <span class="at">cov =</span> <span class="st">`</span><span class="at">2.5 %</span><span class="st">`</span> <span class="sc">&lt;</span> true <span class="sc">&amp;</span> true <span class="sc">&lt;</span> <span class="st">`</span><span class="at">97.5 %</span><span class="st">`</span>, <span class="co"># coverage</span></span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>                 <span class="at">bias =</span> estimate <span class="sc">-</span> true) <span class="sc">%&gt;%</span> <span class="co"># bias</span></span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>          <span class="fu">select</span>(term, m, true, estimate, std.error, statistic, p.value, </span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>                 riv, <span class="st">`</span><span class="at">2.5 %</span><span class="st">`</span>, <span class="st">`</span><span class="at">97.5 %</span><span class="st">`</span>, cov, bias) <span class="sc">%&gt;%</span> </span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>          <span class="fu">column_to_rownames</span>(<span class="st">"term"</span>) <span class="co"># `term` as rownames</span></span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span> </span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>      <span class="fu">Reduce</span>(<span class="st">"+"</span>, .) <span class="sc">/</span> <span class="fu">length</span>(mbased_MCAR)</span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>$MCAR
-               estimate  std.error  statistic df      p.value        true riv
-(Intercept) 0.008326881 0.06546573  0.1420038  4 5.167269e-01 0.008986397 Inf
-x           6.116552345 0.08745088 84.3572866  4 5.563203e-07 6.112860965 Inf
-z           2.963656639 0.09098966 38.7037454  4 1.127899e-05 2.965053625 Inf
+            m        true    estimate  std.error  statistic      p.value riv
+(Intercept) 5 0.008986397 0.008326881 0.06546573  0.1420038 5.167269e-01 Inf
+x           5 6.112860965 6.116552345 0.08745088 84.3572866 5.563203e-07 Inf
+z           5 2.965053625 2.963656639 0.09098966 38.7037454 1.127899e-05 Inf
                  2.5 %    97.5 %   cov          bias
 (Intercept) -0.1734351 0.1900889 0.956 -0.0006595154
 x            5.8737498 6.3593549 0.948  0.0036913796
 z            2.7110288 3.2162844 0.929 -0.0013969863
 
 $MAR
-                estimate  std.error  statistic df      p.value        true riv
-(Intercept) -0.009431595 0.07060251 -0.1709634  4 4.897327e-01 0.008986397 Inf
-x            6.082290519 0.09246685 77.9500305  4 6.603373e-07 6.112860965 Inf
-z            2.991248281 0.09165275 39.0423374  4 1.179988e-05 2.965053625 Inf
+            m        true     estimate  std.error  statistic      p.value riv
+(Intercept) 5 0.008986397 -0.009431595 0.07060251 -0.1709634 4.897327e-01 Inf
+x           5 6.112860965  6.082290519 0.09246685 77.9500305 6.603373e-07 Inf
+z           5 2.965053625  2.991248281 0.09165275 39.0423374 1.179988e-05 Inf
                  2.5 %    97.5 %   cov        bias
 (Intercept) -0.2054556 0.1865924 0.949 -0.01841799
 x            5.8255614 6.3390197 0.958 -0.03057045
 z            2.7367795 3.2457171 0.943  0.02619466</code></pre>
 </div>
 </div>
-<p>Note that in the above code - despite the correct variance calculations - some estimates still need adustment.</p>
+<p>We can see that this adjusted variance simulation set-up yields valid inferences and allows for sharp comparisons between simulation scenarios and - if applicable - simulation methods.</p>
+<p>Note that in the above code - despite the correct variance calculations - the following estimates needed manual adjustment: <code>df</code>, <code>riv</code> and <code>p.value</code>. The line <code>pool(custom.t = ".data$b + .data$b / .data$m")</code> ensures that the estimates, total variance, standard error and the test-statistic are correctly calculated. Since all other calculations depend on those estimates, a simple manual calculation of intervals and coverages suffices.</p>
 </section>
 <section id="design-based-finite-populations" class="level3">
 <h3 class="anchored" data-anchor-id="design-based-finite-populations">Design-based finite populations</h3>
+<p>To demonstrate the validity of the finite population approach on design-based simulations, we will use one of the sampled sets from the design-based simulation section above.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>which <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(simdata), <span class="dv">1</span>)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>truth <span class="ot">&lt;-</span> simdata[[which]]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We perform the simulations as per our outlined simulation set-up, with the difference that our finite object <code>truth</code> now serves as the root of simulation and no sampling of cases is performed, other than the usual sampling of MCAR or right-tailed MAR missingness.</p>
+<div class="cell" data-hash="how_to_gen_miss_cache/html/dbasedfinite_d400571ef8c0373da615c69847a28461">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>dbased_finite <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">MCAR =</span> furrr<span class="sc">::</span><span class="fu">future_map</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">1000</span>, <span class="sc">~</span> { <span class="co"># map over 1000 sims</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>      truth <span class="sc">%&gt;%</span> </span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ampute</span>(<span class="at">prop =</span> .<span class="dv">5</span>, </span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>               <span class="at">mech =</span> <span class="st">"MCAR"</span>) <span class="sc">%&gt;%</span> .<span class="sc">$</span>amp <span class="sc">%&gt;%</span> </span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mice</span>(<span class="at">m =</span> <span class="dv">5</span>, </span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>             <span class="at">maxit =</span> <span class="dv">5</span>,</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>             <span class="at">method =</span> <span class="st">"norm"</span>,</span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>             <span class="at">print =</span> F)</span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>    }, <span class="at">.options =</span> <span class="fu">furrr_options</span>(<span class="at">seed =</span> <span class="dv">123</span>)),</span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">MAR =</span> furrr<span class="sc">::</span><span class="fu">future_map</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">1000</span>, <span class="sc">~</span> { <span class="co"># map over 1000 sims</span></span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>      truth <span class="sc">%&gt;%</span> </span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a>        <span class="fu">ampute</span>(<span class="at">prop =</span> .<span class="dv">5</span>, </span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a>               <span class="at">mech =</span> <span class="st">"MAR"</span>, <span class="at">type =</span> <span class="st">"RIGHT"</span>) <span class="sc">%&gt;%</span> .<span class="sc">$</span>amp <span class="sc">%&gt;%</span> </span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a>        <span class="fu">mice</span>(<span class="at">m =</span> <span class="dv">5</span>, </span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a>             <span class="at">maxit =</span> <span class="dv">5</span>,</span>
+<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>             <span class="at">method =</span> <span class="st">"norm"</span>,</span>
+<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a>             <span class="at">print =</span> F)</span>
+<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a>    }, <span class="at">.options =</span> <span class="fu">furrr_options</span>(<span class="at">seed =</span> <span class="dv">123</span>))</span>
+<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We can evaluate the simulations by excluding the average sampling variance <span class="math inline">\(\bar{U}\)</span> (<code>ubar</code> in <code>mice</code>) from the total variance calculations. First, we extract the true <em>estimand</em> from the finite set <code>truth</code>:</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>true <span class="ot">&lt;-</span> truth <span class="sc">%$%</span> </span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">lm</span>(y <span class="sc">~</span> x <span class="sc">+</span> z) <span class="sc">%&gt;%</span> </span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coefficients</span>()</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>true</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>(Intercept)           x           z 
+   0.319090    5.948874    3.015578 </code></pre>
+</div>
+</div>
+<p>Next, we evaluate the imputations agains <code>truth</code>:</p>
+<div class="cell" data-hash="how_to_gen_miss_cache/html/dbasedevalfinite_9045b623c852c2732b696b9294554d0d">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>dbased_finite <span class="sc">%&gt;%</span> </span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(<span class="sc">~</span>.x <span class="sc">%&gt;%</span> <span class="co"># for every missingness mechanism</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">map</span>(<span class="sc">~</span>.x <span class="sc">%&gt;%</span> <span class="co"># for every simulated multiple imputation....</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>        <span class="fu">complete</span>(<span class="st">"all"</span>) <span class="sc">%&gt;%</span> <span class="co"># create a list of completed data sets</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>        <span class="fu">map</span>(<span class="sc">~</span>.x <span class="sc">%$%</span> <span class="co"># for every completed data set....</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>              <span class="fu">lm</span>(y <span class="sc">~</span> x <span class="sc">+</span> z) <span class="co"># fit linear model</span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>        ) <span class="sc">%&gt;%</span> </span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>          <span class="fu">pool</span>(<span class="at">custom.t =</span> <span class="st">".data$b + .data$b / .data$m"</span>) <span class="sc">%&gt;%</span> <span class="co"># pool coefficients</span></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>          .<span class="sc">$</span>pooled <span class="sc">%&gt;%</span> <span class="co"># extract table of pooled coefficients</span></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a>          <span class="fu">mutate</span>(<span class="at">true =</span> true, <span class="co"># add true</span></span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a>                 <span class="at">df =</span> m<span class="dv">-1</span>,  <span class="co"># correct df</span></span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a>                 <span class="at">riv =</span> <span class="cn">Inf</span>, <span class="co"># correct riv</span></span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a>                 <span class="at">std.error =</span> <span class="fu">sqrt</span>(t), <span class="co"># standard error</span></span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a>                 <span class="at">statistic =</span> estimate <span class="sc">/</span> std.error, <span class="co"># test statistic</span></span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a>                 <span class="at">p.value =</span> <span class="dv">2</span> <span class="sc">*</span> (<span class="fu">pt</span>(<span class="fu">abs</span>(statistic), </span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a>                                   <span class="fu">pmax</span>(df, <span class="fl">0.001</span>), </span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a>                                   <span class="at">lower.tail =</span> <span class="cn">FALSE</span>)), <span class="co"># correct p.value</span></span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a>                 <span class="st">`</span><span class="at">2.5 %</span><span class="st">`</span> <span class="ot">=</span> estimate <span class="sc">-</span> <span class="fu">qt</span>(.<span class="dv">975</span>, df) <span class="sc">*</span> std.error, <span class="co"># lower bound CI</span></span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a>                 <span class="st">`</span><span class="at">97.5 %</span><span class="st">`</span> <span class="ot">=</span> estimate <span class="sc">+</span> <span class="fu">qt</span>(.<span class="dv">975</span>, df) <span class="sc">*</span> std.error, <span class="co"># upper bound CI</span></span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a>                 <span class="at">cov =</span> <span class="st">`</span><span class="at">2.5 %</span><span class="st">`</span> <span class="sc">&lt;</span> true <span class="sc">&amp;</span> true <span class="sc">&lt;</span> <span class="st">`</span><span class="at">97.5 %</span><span class="st">`</span>, <span class="co"># coverage</span></span>
+<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a>                 <span class="at">bias =</span> estimate <span class="sc">-</span> true) <span class="sc">%&gt;%</span> <span class="co"># bias</span></span>
+<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a>          <span class="fu">select</span>(term, m, true, estimate, std.error, statistic, p.value, </span>
+<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a>                 riv, <span class="st">`</span><span class="at">2.5 %</span><span class="st">`</span>, <span class="st">`</span><span class="at">97.5 %</span><span class="st">`</span>, cov, bias) <span class="sc">%&gt;%</span> </span>
+<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a>          <span class="fu">column_to_rownames</span>(<span class="st">"term"</span>) <span class="co"># `term` as rownames</span></span>
+<span id="cb39-25"><a href="#cb39-25" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span> </span>
+<span id="cb39-26"><a href="#cb39-26" aria-hidden="true" tabindex="-1"></a>      <span class="fu">Reduce</span>(<span class="st">"+"</span>, .) <span class="sc">/</span> <span class="fu">length</span>(mbased_MCAR)</span>
+<span id="cb39-27"><a href="#cb39-27" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>$MCAR
+            m     true  estimate  std.error  statistic      p.value riv
+(Intercept) 5 0.319090 0.3071532 0.27420289   1.318445 3.744276e-01 Inf
+x           5 5.948874 5.9518494 0.04213763 169.069926 3.027307e-08 Inf
+z           5 3.015578 3.0114404 0.03998183  90.585963 3.726015e-07 Inf
+                 2.5 %   97.5 %   cov         bias
+(Intercept) -0.4541561 1.068462 0.955 -0.011936856
+x            5.8348566 6.068842 0.949  0.002975250
+z            2.9004331 3.122448 0.957 -0.004137616
+
+$MAR
+            m     true  estimate  std.error  statistic      p.value riv
+(Intercept) 5 0.319090 0.3848983 0.27095351   1.643707 3.126676e-01 Inf
+x           5 5.948874 5.9398700 0.04256856 162.385704 3.015325e-08 Inf
+z           5 3.015578 3.0167730 0.03944059  90.237449 3.364306e-07 Inf
+                 2.5 %   97.5 %   cov         bias
+(Intercept) -0.3673892 1.137186 0.956  0.065808335
+x            5.8216807 6.058059 0.954 -0.009004194
+z            2.9072684 3.126278 0.969  0.001195002</code></pre>
+</div>
+</div>
+<p>We can see that this adjusted variance simulation set-up also yields valid inferences for design based simulations on a single finite set.</p>
 </section>
 </section>
 <section id="conclusion" class="level1">
@@ -647,7 +743,7 @@ z            2.7367795 3.2457171 0.943  0.02619466</code></pre>
 <section id="session-info" class="level1">
 <h1>Session info</h1>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>R version 4.2.2 (2022-10-31)
 Platform: aarch64-apple-darwin20 (64-bit)
@@ -672,13 +768,13 @@ loaded via a namespace (and not attached):
  [5] digest_0.6.30     jsonlite_1.8.3    evaluate_0.15     lifecycle_1.0.3  
  [9] lattice_0.20-45   pkgconfig_2.0.3   rlang_1.0.6       cli_3.4.1        
 [13] DBI_1.1.2         rstudioapi_0.13   parallel_4.2.2    yaml_2.3.5       
-[17] mvtnorm_1.1-3     xfun_0.31         fastmap_1.1.0     stringr_1.4.1    
-[21] knitr_1.39        globals_0.16.1    generics_0.1.3    vctrs_0.5.1      
-[25] htmlwidgets_1.5.4 grid_4.2.2        tidyselect_1.2.0  glue_1.6.2       
-[29] listenv_0.8.0     R6_2.5.1          parallelly_1.32.1 fansi_1.0.3      
-[33] rmarkdown_2.14    tidyr_1.2.1       codetools_0.2-18  backports_1.4.1  
-[37] htmltools_0.5.3   assertthat_0.2.1  utf8_1.2.2        stringi_1.7.8    
-[41] broom_1.0.1      </code></pre>
+[17] mvtnorm_1.1-3     xfun_0.31         fastmap_1.1.0     withr_2.5.0      
+[21] stringr_1.5.0     knitr_1.39        globals_0.16.1    generics_0.1.3   
+[25] vctrs_0.5.1       htmlwidgets_1.5.4 grid_4.2.2        tidyselect_1.2.0 
+[29] glue_1.6.2        listenv_0.8.0     R6_2.5.1          parallelly_1.32.1
+[33] fansi_1.0.3       rmarkdown_2.14    tidyr_1.2.1       codetools_0.2-18 
+[37] backports_1.4.1   htmltools_0.5.3   assertthat_0.2.1  utf8_1.2.2       
+[41] stringi_1.7.8     broom_1.0.1      </code></pre>
 </div>
 </div>
 
