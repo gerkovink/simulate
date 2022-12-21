@@ -13,14 +13,26 @@ format:
 ---
 
 # Aim
-The aim of this document is to outline several strategies for simulation missingness that allow for valid inferences. I will focus on three types of methods for evaluating imputation procedures: model-based simulation, design-based simulation and methods that depart from a single finite set wherin only missingness is induced. 
+The aim of this document is to outline several strategies for simulation missingness that allow for valid inferences. Such simulation scenarios would evaluate the following multiple imputation pipeline:
+
+<center>
+![Figure 1](img/imp.png){width=50%}
+<br>Figure 1: A standard imputation workflow 
+</center>
+<br>
+In the above workflow a sample is randomly obtained from a truth (e.g. a population). This sample may be nonrandomly missing, which means that the imputation procedure must correct the inference for its combined analysis to allow for valid conclusions about the population. 
+
+I will focus on three types of methods for evaluating imputation procedures: model-based simulation, design-based simulation and methods that depart from the above workflow by merely generating a single finite set wherein only missingness is induced.
+
 
 ---
 
 # Analysis model
 The analysis model is a simple linear regression model. In all simulation scenarios I will use 3 variables/features: an outcome $y$ and 2 predictors $x$ and $z$, such that 
 
-$$y = x + z + \varepsilon.$$
+$$y = x + z + \varepsilon,$$
+
+where the residual $\varepsilon\sim\mathcal{N}(0, 1)$.
 
 I will evaluate the analysis model on the imputed data and on the complete cases in order to demonstrate the effect of the missingness. 
 
@@ -37,10 +49,12 @@ I use the following packages in this document
 library(mice)     # for imputation and amputation
 library(purrr)    # for functional programming
 library(furrr)    # for functional futures
+library(mvtnorm)  # for multivariate normal data
 library(magrittr) # for pipes
 library(dplyr)    # for data manipulation
 library(tibble)   # for tibbles
 ```
+The references for these packages are respectively: @mice, @purrr, @furrr, @mvtnorm, @magrittr, @dplyr and @tibble. 
 
 I also fix the `RNG` seed to allow for full reproduction of the findings:
 ```{r seed}
@@ -50,8 +64,13 @@ set.seed(123)     # get the same as I got
 ---
 
 # Model-based simulation
-The first strategy I outline is model-based simulation, where a theoretical model is used to sample the data from. The estimand - or true parameter - will be the parameter value in the theoretical population where I sample from. 
+The first strategy I outline is model-based simulation, where a theoretical model is used to sample the data from. The estimand - or true parameter - will be the parameter value in the theoretical population where I sample from. The below figure outlines this approach.
 
+<center>
+![Figure 2](img/mbased.png){width=70%}
+<br>Figure 2: A graphical depiction of model based simulation [^1]. 
+</center>
+<br>
 Let's keep it simple and use a multivariate normal model to sample our data from. In this case, we generate a predictor space $(x,z)$ by drawing data from a multivariate normal distribution with means
 
 $$
@@ -190,9 +209,15 @@ mbased_MAR %>%
 
 # Design-based simulation
 
-With design-based simulation, a smaller set is usually sampled from a sufficiently large register or population. This type of simulation design is often deployed when a real-life data source is available, such as in e.g. medical or official statistics. 
+With design-based simulation, a smaller set is usually sampled from a sufficiently large finite register or finite population. This type of simulation design is often deployed when a real-life data source is available, such as in e.g. medical or official statistics. 
 
-## Generating a sufficiently large population
+<center>
+![Figure 3](img/dbased.png){width=70%}
+<br>Figure 3: A graphical depiction of design-based simulation[^1]. 
+</center>
+<br>
+
+## Generating a sufficiently large set
 We continue with the previously used multivariate normal model, but now sample a true set of size 1,000,000 cases. The easiest and most computationally convenient approach to realizing this, would be to bind the 1000 sets from `simdata` together into a long format:
 ```{r truth, cache=TRUE}
 truth <- simdata %>% 
@@ -284,6 +309,11 @@ dbased %>%
 
 # Using a finite *population*
 Instead of sampling data from a large data set or from a theoretical model, we can also take a single finite observed set as our comparative truth. With missing data simulations, this means that we can eliminate sampling variance from the evaluations of the imputation performance [@vink14]. 
+<center>
+![Figure 4](img/varless.png){width=70%}
+<br>Figure 4: A graphical depiction of missing data simulation with only missing data variance [^1]. 
+</center>
+<br>
 
 [@rubi87] defined $Q$ as the quantity of interest (possibly a vector) and $U$ as its variance. With multiple imputation, $m$ complete data estimates can be averaged as
 $$\bar{Q}=\frac{1}{m}\sum^{m}_{l=1}{ \hat{Q}}_{l},$$
@@ -463,8 +493,14 @@ dbased_finite %>%
 
 We can see that this adjusted variance simulation set-up also yields valid inferences for design based simulations on a single finite set. 
 
+[^1]: Note that for reasons of simplicity only the pooled analysis for 3 simulations and the multiply imputed samples for 3 imputations for each of those 3 simulations are shown. In real life this should be increased to obtain a more stable Monte Carlo simulation result. 
+
+---
 
 # Conclusion
+We have seen that it is straightforward to simulate missingness in `R`. Some of the outlined simulation scenarios may be more fitting to your aim or simulation set-up, but in all simulated cases there is the option to exclude the sampling of data sets and only sample the missingness. This may allow for a sharper comparison between imputation methods, as only the performance on solving for the missingness can impact method performance. 
+
+Please note that excluding sampling variance is not an option on real-life data sets, except for the scenario where **all records** from a real-life incomplete finite population are observed.
 
 ---
 

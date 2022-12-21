@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.1.189">
+<meta name="generator" content="quarto-1.2.269">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -141,7 +141,7 @@ div.csl-indent {
   </ul></li>
   <li><a href="#design-based-simulation" id="toc-design-based-simulation" class="nav-link" data-scroll-target="#design-based-simulation">Design-based simulation</a>
   <ul class="collapse">
-  <li><a href="#generating-a-sufficiently-large-population" id="toc-generating-a-sufficiently-large-population" class="nav-link" data-scroll-target="#generating-a-sufficiently-large-population">Generating a sufficiently large population</a></li>
+  <li><a href="#generating-a-sufficiently-large-set" id="toc-generating-a-sufficiently-large-set" class="nav-link" data-scroll-target="#generating-a-sufficiently-large-set">Generating a sufficiently large set</a></li>
   </ul></li>
   <li><a href="#using-a-finite-population" id="toc-using-a-finite-population" class="nav-link" data-scroll-target="#using-a-finite-population">Using a finite <em>population</em></a>
   <ul class="collapse">
@@ -177,6 +177,7 @@ div.csl-indent {
       <p class="date">December 12, 2022</p>
     </div>
   </div>
+  
     
   </div>
   
@@ -186,13 +187,19 @@ div.csl-indent {
 <hr>
 <section id="aim" class="level1">
 <h1>Aim</h1>
-<p>The aim of this document is to outline several strategies for simulation missingness that allow for valid inferences. I will focus on three types of methods for evaluating imputation procedures: model-based simulation, design-based simulation and methods that depart from a single finite set wherin only missingness is induced.</p>
+<p>The aim of this document is to outline several strategies for simulation missingness that allow for valid inferences. Such simulation scenarios would evaluate the following multiple imputation pipeline:</p>
+<center>
+<img src="img/imp.png" class="img-fluid" style="width:50.0%" alt="Figure 1"> <br>Figure 1: A standard imputation workflow
+</center>
+<p><br> In the above workflow a sample is randomly obtained from a truth (e.g.&nbsp;a population). This sample may be nonrandomly missing, which means that the imputation procedure must correct the inference for its combined analysis to allow for valid conclusions about the population.</p>
+<p>I will focus on three types of methods for evaluating imputation procedures: model-based simulation, design-based simulation and methods that depart from the above workflow by merely generating a single finite set wherein only missingness is induced.</p>
 <hr>
 </section>
 <section id="analysis-model" class="level1">
 <h1>Analysis model</h1>
 <p>The analysis model is a simple linear regression model. In all simulation scenarios I will use 3 variables/features: an outcome <span class="math inline">\(y\)</span> and 2 predictors <span class="math inline">\(x\)</span> and <span class="math inline">\(z\)</span>, such that</p>
-<p><span class="math display">\[y = x + z + \varepsilon.\]</span></p>
+<p><span class="math display">\[y = x + z + \varepsilon,\]</span></p>
+<p>where the residual <span class="math inline">\(\varepsilon\sim\mathcal{N}(0, 1)\)</span>.</p>
 <p>I will evaluate the analysis model on the imputed data and on the complete cases in order to demonstrate the effect of the missingness.</p>
 <hr>
 </section>
@@ -208,10 +215,12 @@ div.csl-indent {
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mice)     <span class="co"># for imputation and amputation</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(purrr)    <span class="co"># for functional programming</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(furrr)    <span class="co"># for functional futures</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(magrittr) <span class="co"># for pipes</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)    <span class="co"># for data manipulation</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tibble)   <span class="co"># for tibbles</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mvtnorm)  <span class="co"># for multivariate normal data</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(magrittr) <span class="co"># for pipes</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)    <span class="co"># for data manipulation</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tibble)   <span class="co"># for tibbles</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<p>The references for these packages are respectively: <span class="citation" data-cites="mice">Van Buuren and Groothuis-Oudshoorn (<a href="#ref-mice" role="doc-biblioref">2011</a>)</span>, <span class="citation" data-cites="purrr">Henry and Wickham (<a href="#ref-purrr" role="doc-biblioref">2022</a>)</span>, <span class="citation" data-cites="furrr">Vaughan and Dancho (<a href="#ref-furrr" role="doc-biblioref">2022</a>)</span>, <span class="citation" data-cites="mvtnorm">Genz et al. (<a href="#ref-mvtnorm" role="doc-biblioref">2021</a>)</span>, <span class="citation" data-cites="magrittr">Bache and Wickham (<a href="#ref-magrittr" role="doc-biblioref">2022</a>)</span>, <span class="citation" data-cites="dplyr">Wickham et al. (<a href="#ref-dplyr" role="doc-biblioref">2022</a>)</span> and <span class="citation" data-cites="tibble">Müller and Wickham (<a href="#ref-tibble" role="doc-biblioref">2022</a>)</span>.</p>
 <p>I also fix the <code>RNG</code> seed to allow for full reproduction of the findings:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>)     <span class="co"># get the same as I got</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
@@ -220,8 +229,11 @@ div.csl-indent {
 </section>
 <section id="model-based-simulation" class="level1">
 <h1>Model-based simulation</h1>
-<p>The first strategy I outline is model-based simulation, where a theoretical model is used to sample the data from. The estimand - or true parameter - will be the parameter value in the theoretical population where I sample from.</p>
-<p>Let’s keep it simple and use a multivariate normal model to sample our data from. In this case, we generate a predictor space <span class="math inline">\((x,z)\)</span> by drawing data from a multivariate normal distribution with means</p>
+<p>The first strategy I outline is model-based simulation, where a theoretical model is used to sample the data from. The estimand - or true parameter - will be the parameter value in the theoretical population where I sample from. The below figure outlines this approach.</p>
+<center>
+<img src="img/mbased.png" class="img-fluid" style="width:70.0%" alt="Figure 2"> <br>Figure 2: A graphical depiction of model based simulation <a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a>.
+</center>
+<p><br> Let’s keep it simple and use a multivariate normal model to sample our data from. In this case, we generate a predictor space <span class="math inline">\((x,z)\)</span> by drawing data from a multivariate normal distribution with means</p>
 <p><span class="math display">\[
 \mu =
 \begin{pmatrix}
@@ -405,9 +417,13 @@ z           3.1297015    3 0.955 -0.0031980455</code></pre>
 </section>
 <section id="design-based-simulation" class="level1">
 <h1>Design-based simulation</h1>
-<p>With design-based simulation, a smaller set is usually sampled from a sufficiently large register or population. This type of simulation design is often deployed when a real-life data source is available, such as in e.g.&nbsp;medical or official statistics.</p>
-<section id="generating-a-sufficiently-large-population" class="level2">
-<h2 class="anchored" data-anchor-id="generating-a-sufficiently-large-population">Generating a sufficiently large population</h2>
+<p>With design-based simulation, a smaller set is usually sampled from a sufficiently large finite register or finite population. This type of simulation design is often deployed when a real-life data source is available, such as in e.g.&nbsp;medical or official statistics.</p>
+<center>
+<img src="img/dbased.png" class="img-fluid" style="width:70.0%" alt="Figure 3"> <br>Figure 3: A graphical depiction of design-based simulation<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.
+</center>
+<p><br></p>
+<section id="generating-a-sufficiently-large-set" class="level2">
+<h2 class="anchored" data-anchor-id="generating-a-sufficiently-large-set">Generating a sufficiently large set</h2>
 <p>We continue with the previously used multivariate normal model, but now sample a true set of size 1,000,000 cases. The easiest and most computationally convenient approach to realizing this, would be to bind the 1000 sets from <code>simdata</code> together into a long format:</p>
 <div class="cell" data-hash="index_cache/html/truth_c3fa2913d200d70ae7039e8a809c2998">
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>truth <span class="ot">&lt;-</span> simdata <span class="sc">%&gt;%</span> </span>
@@ -531,7 +547,11 @@ z            2.8622445 3.1235386  2.998412255 0.945 -0.0055207544</code></pre>
 </section>
 <section id="using-a-finite-population" class="level1">
 <h1>Using a finite <em>population</em></h1>
-<p>Instead of sampling data from a large data set or from a theoretical model, we can also take a single finite observed set as our comparative truth. With missing data simulations, this means that we can eliminate sampling variance from the evaluations of the imputation performance <span class="citation" data-cites="vink14">(<a href="#ref-vink14" role="doc-biblioref">Vink and van Buuren 2014</a>)</span>.</p>
+Instead of sampling data from a large data set or from a theoretical model, we can also take a single finite observed set as our comparative truth. With missing data simulations, this means that we can eliminate sampling variance from the evaluations of the imputation performance <span class="citation" data-cites="vink14">(<a href="#ref-vink14" role="doc-biblioref">Vink and van Buuren 2014</a>)</span>.
+<center>
+<img src="img/varless.png" class="img-fluid" style="width:70.0%" alt="Figure 4"> <br>Figure 4: A graphical depiction of missing data simulation with only missing data variance <a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a>.
+</center>
+<p><br></p>
 <p><span class="citation" data-cites="rubi87">(<a href="#ref-rubi87" role="doc-biblioref">Rubin 1987</a>)</span> defined <span class="math inline">\(Q\)</span> as the quantity of interest (possibly a vector) and <span class="math inline">\(U\)</span> as its variance. With multiple imputation, <span class="math inline">\(m\)</span> complete data estimates can be averaged as <span class="math display">\[\bar{Q}=\frac{1}{m}\sum^{m}_{l=1}{ \hat{Q}}_{l},\]</span></p>
 <p>where <span class="math inline">\(\hat Q_l\)</span> is an estimate of <span class="math inline">\(Q\)</span> from the <span class="math inline">\(l\)</span>-th imputed data set. Let <span class="math inline">\(\bar U_l\)</span> be the estimated variance-covariance matrix of <span class="math inline">\(\hat Q_l\)</span>. The complete data variances of <span class="math inline">\(Q\)</span> can be combined by</p>
 <p><span class="math display">\[\bar{U}=\frac{1}{m}\sum^{m}_{l=1}{ {\bar U}}_{l}.\]</span> The variance between the complete data estimates can be calculated as</p>
@@ -734,10 +754,13 @@ z            2.9072684 3.126278 0.969  0.001195002</code></pre>
 </div>
 </div>
 <p>We can see that this adjusted variance simulation set-up also yields valid inferences for design based simulations on a single finite set.</p>
+<hr>
 </section>
 </section>
 <section id="conclusion" class="level1">
 <h1>Conclusion</h1>
+<p>We have seen that it is straightforward to simulate missingness in <code>R</code>. Some of the outlined simulation scenarios may be more fitting to your aim or simulation set-up, but in all simulated cases there is the option to exclude the sampling of data sets and only sample the missingness. This may allow for a sharper comparison between imputation methods, as only the performance on solving for the missingness can impact method performance.</p>
+<p>Please note that excluding sampling variance is not an option on real-life data sets, except for the scenario where <strong>all records</strong> from a real-life incomplete finite population are observed.</p>
 <hr>
 </section>
 <section id="session-info" class="level1">
@@ -760,29 +783,38 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] tibble_3.1.8   dplyr_1.0.10   magrittr_2.0.3 furrr_0.3.0    future_1.29.0 
-[6] purrr_0.3.5    mice_3.15.0   
+[1] tibble_3.1.8   dplyr_1.0.10   magrittr_2.0.3 mvtnorm_1.1-3  furrr_0.3.0   
+[6] future_1.29.0  purrr_0.3.5    mice_3.15.0   
 
 loaded via a namespace (and not attached):
  [1] Rcpp_1.0.9        pillar_1.8.1      compiler_4.2.2    tools_4.2.2      
  [5] digest_0.6.31     jsonlite_1.8.4    evaluate_0.15     lifecycle_1.0.3  
  [9] lattice_0.20-45   pkgconfig_2.0.3   rlang_1.0.6       cli_3.4.1        
 [13] DBI_1.1.2         rstudioapi_0.13   parallel_4.2.2    yaml_2.3.5       
-[17] mvtnorm_1.1-3     xfun_0.31         fastmap_1.1.0     withr_2.5.0      
-[21] stringr_1.5.0     knitr_1.39        globals_0.16.2    generics_0.1.3   
-[25] vctrs_0.5.1       htmlwidgets_1.5.4 grid_4.2.2        tidyselect_1.2.0 
-[29] glue_1.6.2        listenv_0.8.0     R6_2.5.1          parallelly_1.32.1
-[33] fansi_1.0.3       rmarkdown_2.14    tidyr_1.2.1       codetools_0.2-18 
-[37] backports_1.4.1   htmltools_0.5.4   assertthat_0.2.1  utf8_1.2.2       
-[41] stringi_1.7.8     broom_1.0.1      </code></pre>
+[17] xfun_0.31         fastmap_1.1.0     stringr_1.5.0     knitr_1.39       
+[21] globals_0.16.2    generics_0.1.3    vctrs_0.5.1       htmlwidgets_1.5.4
+[25] grid_4.2.2        tidyselect_1.2.0  glue_1.6.2        listenv_0.8.0    
+[29] R6_2.5.1          parallelly_1.32.1 fansi_1.0.3       rmarkdown_2.14   
+[33] tidyr_1.2.1       codetools_0.2-18  backports_1.4.1   htmltools_0.5.4  
+[37] assertthat_0.2.1  utf8_1.2.2        stringi_1.7.8     broom_1.0.1      </code></pre>
 </div>
 </div>
 
 </section>
 
+
 <div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="doc-bibliography">
+<div id="ref-magrittr" class="csl-entry" role="doc-biblioentry">
+Bache, Stefan Milton, and Hadley Wickham. 2022. <em>Magrittr: A Forward-Pipe Operator for r</em>. <a href="https://CRAN.R-project.org/package=magrittr">https://CRAN.R-project.org/package=magrittr</a>.
+</div>
 <div id="ref-mvtnorm" class="csl-entry" role="doc-biblioentry">
 Genz, Alan, Frank Bretz, Tetsuhisa Miwa, Xuefei Mi, Friedrich Leisch, Fabian Scheipl, and Torsten Hothorn. 2021. <em><span class="nocase">mvtnorm</span>: Multivariate Normal and t Distributions</em>. <a href="https://CRAN.R-project.org/package=mvtnorm">https://CRAN.R-project.org/package=mvtnorm</a>.
+</div>
+<div id="ref-purrr" class="csl-entry" role="doc-biblioentry">
+Henry, Lionel, and Hadley Wickham. 2022. <em>Purrr: Functional Programming Tools</em>. <a href="https://CRAN.R-project.org/package=purrr">https://CRAN.R-project.org/package=purrr</a>.
+</div>
+<div id="ref-tibble" class="csl-entry" role="doc-biblioentry">
+Müller, Kirill, and Hadley Wickham. 2022. <em>Tibble: Simple Data Frames</em>. <a href="https://CRAN.R-project.org/package=tibble">https://CRAN.R-project.org/package=tibble</a>.
 </div>
 <div id="ref-neym34" class="csl-entry" role="doc-biblioentry">
 Neyman, Jerzy. 1934. <span>“On the <span>Two Different Aspects</span> of the <span>Representative Method</span>: <span>The Method</span> of <span>Stratified Sampling</span> and the <span>Method</span> of <span>Purposive Selection</span>.”</span> <em>Journal of the Royal Statistical Society</em> 97 (4): 558–625. <a href="https://doi.org/10.2307/2342192">https://doi.org/10.2307/2342192</a>.
@@ -805,10 +837,23 @@ Schouten, Rianne Margaretha, and Gerko Vink. 2021. <span>“The <span>Dance</spa
 <div id="ref-mice" class="csl-entry" role="doc-biblioentry">
 Van Buuren, Stef, and Karin Groothuis-Oudshoorn. 2011. <span>“Mice: <span>Multivariate Imputation</span> by <span>Chained Equations</span> in <span>R</span>.”</span> <em>Journal of Statistical Software</em> 45 (1): 1–67. <a href="https://doi.org/10.18637/jss.v045.i03">https://doi.org/10.18637/jss.v045.i03</a>.
 </div>
+<div id="ref-furrr" class="csl-entry" role="doc-biblioentry">
+Vaughan, Davis, and Matt Dancho. 2022. <em>Furrr: Apply Mapping Functions in Parallel Using Futures</em>. <a href="https://CRAN.R-project.org/package=furrr">https://CRAN.R-project.org/package=furrr</a>.
+</div>
 <div id="ref-vink14" class="csl-entry" role="doc-biblioentry">
 Vink, Gerko, and Stef van Buuren. 2014. <span>“Pooling Multiple Imputations When the Sample Happens to Be the Population,”</span> September.
 </div>
-</div></section></div></main>
+<div id="ref-dplyr" class="csl-entry" role="doc-biblioentry">
+Wickham, Hadley, Romain François, Lionel Henry, and Kirill Müller. 2022. <em>Dplyr: A Grammar of Data Manipulation</em>. <a href="https://CRAN.R-project.org/package=dplyr">https://CRAN.R-project.org/package=dplyr</a>.
+</div>
+</div></section><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Note that for reasons of simplicity only the pooled analysis for 3 simulations and the multiply imputed samples for 3 imputations for each of those 3 simulations are shown. In real life this should be increased to obtain a more stable Monte Carlo simulation result.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Note that for reasons of simplicity only the pooled analysis for 3 simulations and the multiply imputed samples for 3 imputations for each of those 3 simulations are shown. In real life this should be increased to obtain a more stable Monte Carlo simulation result.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Note that for reasons of simplicity only the pooled analysis for 3 simulations and the multiply imputed samples for 3 imputations for each of those 3 simulations are shown. In real life this should be increased to obtain a more stable Monte Carlo simulation result.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main>
 <!-- /main column -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
@@ -851,7 +896,24 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
     button.classList.add('code-copy-button-checked');
     var currentTitle = button.getAttribute("title");
     button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
     setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
       button.setAttribute("title", currentTitle);
       button.classList.remove('code-copy-button-checked');
     }, 1000);
@@ -887,24 +949,42 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       return note.innerHTML;
     });
   }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
   var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
   for (var i=0; i<bibliorefs.length; i++) {
     const ref = bibliorefs[i];
-    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
-    tippyHover(ref, function() {
-      var popup = window.document.createElement('div');
-      cites.forEach(function(cite) {
-        var citeDiv = window.document.createElement('div');
-        citeDiv.classList.add('hanging-indent');
-        citeDiv.classList.add('csl-entry');
-        var biblioDiv = window.document.getElementById('ref-' + cite);
-        if (biblioDiv) {
-          citeDiv.innerHTML = biblioDiv.innerHTML;
-        }
-        popup.appendChild(citeDiv);
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
       });
-      return popup.innerHTML;
-    });
+    }
   }
 });
 </script>
