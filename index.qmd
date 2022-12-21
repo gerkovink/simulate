@@ -12,6 +12,8 @@ format:
 
 ---
 
+[![DOI](https://zenodo.org/badge/577246981.svg)](https://zenodo.org/badge/latestdoi/577246981)
+<br>
 All quarto files and `R`-code to reproduce this document can be found in [this repository on GitHub](https://github.com/gerkovink/simulate_missingness). 
 
 ---
