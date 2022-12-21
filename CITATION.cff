@@ -1,16 +1,11 @@
-Please cite as:
-
-- Gerko Vink. (2022). Strategies for simulating missingness (v1.0). Zenodo. https://doi.org/10.5281/zenodo.7467995
-
-or use 
-
-@misc{gerko_vink_2022_7467995,
-  author       = {Gerko Vink},
-  title        = {Strategies for simulating missingness},
-  month        = dec,
-  year         = 2022,
-  publisher    = {Zenodo},
-  version      = {v1.0},
-  doi          = {10.5281/zenodo.7467995},
-  url          = {https://doi.org/10.5281/zenodo.7467995}
-}
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Vink"
+  given-names: "Gerko"
+  orcid: "https://orcid.org/0000-0001-9767-1924"
+title: "Strategies for simulating missingness"
+version: 1.0
+doi: 10.5281/zenodo.7467995
+date-released: 2022-12-21
+url: "https://www.gerkovink.com/simulate"
