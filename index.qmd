@@ -345,14 +345,13 @@ $$T=\bar{U}+B+B/m.$$
 For populations for which all units are recorded, the average complete data variance $\bar{U}$ of $Q$ equals zero - there is no sampling variation - and the total variance of $({Q}-\bar{Q})$ simplifies to 
 
 $$T=B+B/m.$$
-As a consequence, the relative increase in variance due to nonresponse equals
-
-$$r = (1+{m^{-1}}) B/\bar{U}= \infty, %(1+{m^{-1}}) B/0= \infty$$
-
-and the degrees of freedom $\nu$ can be set to
+As a consequence, the relative increase in variance due to nonresponse equals $r = (1+{m^{-1}}) B/\bar{U}= \infty$[^4], and the degrees of freedom $\nu$ can be set to
 
 $$\nu = (m-1)(1+r^{-1})^2=m-1.$$
+
 In simulation, we can make use of this property by taking a single finite complete set as our comparative truth and only induce missingness in it. The induced missingness would then serve as the necessary Monte Carlo variation. 
+
+[^4]: I know!
 
 ---
 

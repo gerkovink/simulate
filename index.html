@@ -568,10 +568,9 @@ Instead of sampling data from a large data set or from a theoretical model, we c
 <p>The total variance of <span class="math inline">\(({ Q}-\bar{Q})\)</span> is defined as</p>
 <p><span class="math display">\[T=\bar{U}+B+B/m.\]</span></p>
 <p>For populations for which all units are recorded, the average complete data variance <span class="math inline">\(\bar{U}\)</span> of <span class="math inline">\(Q\)</span> equals zero - there is no sampling variation - and the total variance of <span class="math inline">\(({Q}-\bar{Q})\)</span> simplifies to</p>
-<p><span class="math display">\[T=B+B/m.\]</span> As a consequence, the relative increase in variance due to nonresponse equals</p>
-<p><span class="math display">\[r = (1+{m^{-1}}) B/\bar{U}= \infty, %(1+{m^{-1}}) B/0= \infty\]</span></p>
-<p>and the degrees of freedom <span class="math inline">\(\nu\)</span> can be set to</p>
-<p><span class="math display">\[\nu = (m-1)(1+r^{-1})^2=m-1.\]</span> In simulation, we can make use of this property by taking a single finite complete set as our comparative truth and only induce missingness in it. The induced missingness would then serve as the necessary Monte Carlo variation.</p>
+<p><span class="math display">\[T=B+B/m.\]</span> As a consequence, the relative increase in variance due to nonresponse equals <span class="math inline">\(r = (1+{m^{-1}}) B/\bar{U}= \infty\)</span><a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>, and the degrees of freedom <span class="math inline">\(\nu\)</span> can be set to</p>
+<p><span class="math display">\[\nu = (m-1)(1+r^{-1})^2=m-1.\]</span></p>
+<p>In simulation, we can make use of this property by taking a single finite complete set as our comparative truth and only induce missingness in it. The induced missingness would then serve as the necessary Monte Carlo variation.</p>
 <hr>
 <section id="model-based-finite-populations" class="level2">
 <h2 class="anchored" data-anchor-id="model-based-finite-populations">Model-based finite populations</h2>
@@ -869,6 +868,7 @@ loaded via a namespace (and not attached):
 <li id="fn1"><p>Note that for reasons of simplicity only the pooled analysis for 3 simulations and the multiply imputed samples for 3 imputations for each of those 3 simulations are shown. In real life this should be increased to obtain a more stable Monte Carlo simulation result.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn2"><p>Note that for reasons of simplicity only the pooled analysis for 3 simulations and the multiply imputed samples for 3 imputations for each of those 3 simulations are shown. In real life this should be increased to obtain a more stable Monte Carlo simulation result.<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 <li id="fn3"><p>Note that for reasons of simplicity only the pooled analysis for 3 simulations and the multiply imputed samples for 3 imputations for each of those 3 simulations are shown. In real life this should be increased to obtain a more stable Monte Carlo simulation result.<a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>I know!<a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section></div></main>
 <!-- /main column -->
