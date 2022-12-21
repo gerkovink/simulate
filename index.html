@@ -142,6 +142,7 @@ div.csl-indent {
   <li><a href="#design-based-simulation" id="toc-design-based-simulation" class="nav-link" data-scroll-target="#design-based-simulation">Design-based simulation</a>
   <ul class="collapse">
   <li><a href="#generating-a-sufficiently-large-set" id="toc-generating-a-sufficiently-large-set" class="nav-link" data-scroll-target="#generating-a-sufficiently-large-set">Generating a sufficiently large set</a></li>
+  <li><a href="#simulate-missingness" id="toc-simulate-missingness" class="nav-link" data-scroll-target="#simulate-missingness">Simulate missingness</a></li>
   </ul></li>
   <li><a href="#using-a-finite-population" id="toc-using-a-finite-population" class="nav-link" data-scroll-target="#using-a-finite-population">Using a finite <em>population</em></a>
   <ul class="collapse">
@@ -149,6 +150,7 @@ div.csl-indent {
   <li><a href="#design-based-finite-populations" id="toc-design-based-finite-populations" class="nav-link" data-scroll-target="#design-based-finite-populations">Design-based finite populations</a></li>
   </ul></li>
   <li><a href="#conclusion" id="toc-conclusion" class="nav-link" data-scroll-target="#conclusion">Conclusion</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   <li><a href="#session-info" id="toc-session-info" class="nav-link" data-scroll-target="#session-info">Session info</a></li>
   </ul>
 </nav>
@@ -184,6 +186,8 @@ div.csl-indent {
 
 </header>
 
+<hr>
+<p>All quarto files and <code>R</code>-code to reproduce this document can be found in <a href="https://github.com/gerkovink/simulate_missingness">this repository on GitHub</a>.</p>
 <hr>
 <section id="aim" class="level1">
 <h1>Aim</h1>
@@ -297,8 +301,8 @@ div.csl-indent {
 </div>
 <p>We see indeed that the average simulated set approximates the true parameters for the <span class="math inline">\(Intercept\)</span>, for <span class="math inline">\(x\)</span> and for <span class="math inline">\(z\)</span>.</p>
 <hr>
-<section id="simulate-mcar-missingness" class="level3">
-<h3 class="anchored" data-anchor-id="simulate-mcar-missingness">Simulate MCAR missingness</h3>
+<section id="simulate-mcar-missingness" class="level2">
+<h2 class="anchored" data-anchor-id="simulate-mcar-missingness">Simulate MCAR missingness</h2>
 <p>Now, let’s use a future to set up the amputation and imputation in a computationally efficient manner. We’ll start with the MCAR simulation:</p>
 <div class="cell" data-hash="index_cache/html/modelMCAR_1117534a06e5519a49e001a59d2b222a">
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>mbased_MCAR <span class="ot">&lt;-</span> </span>
@@ -368,11 +372,11 @@ x            5.8747674 6.1337354    6 0.937  0.004251391
 z            2.8671356 3.1268620    3 0.939 -0.003001178</code></pre>
 </div>
 </div>
-<p>The results demonstrate that the estimates are unbiased and confidence valid cf. <span class="citation" data-cites="neym34">(<a href="#ref-neym34" role="doc-biblioref">Neyman 1934</a>)</span>.</p>
+<p>The results demonstrate that the estimates are unbiased and confidence valid cf. <span class="citation" data-cites="neym34">Neyman (<a href="#ref-neym34" role="doc-biblioref">1934</a>)</span>.</p>
 <hr>
 </section>
-<section id="simulate-mar-missingness" class="level3">
-<h3 class="anchored" data-anchor-id="simulate-mar-missingness">Simulate MAR missingness</h3>
+<section id="simulate-mar-missingness" class="level2">
+<h2 class="anchored" data-anchor-id="simulate-mar-missingness">Simulate MAR missingness</h2>
 <p>We can easily replicate the above example for a right-tailed MAR mechanism by adapting the following code changes to the simulation:</p>
 <div class="cell" data-hash="index_cache/html/unnamed-chunk-6_edfde9b700d4c5345f33215f667da94e">
 <div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>mbased_MAR <span class="ot">&lt;-</span> </span>
@@ -422,6 +426,7 @@ z           3.1297015    3 0.955 -0.0031980455</code></pre>
 <img src="img/dbased.png" class="img-fluid" style="width:70.0%" alt="Figure 3"> <br>Figure 3: A graphical depiction of design-based simulation<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>.
 </center>
 <p><br></p>
+<hr>
 <section id="generating-a-sufficiently-large-set" class="level2">
 <h2 class="anchored" data-anchor-id="generating-a-sufficiently-large-set">Generating a sufficiently large set</h2>
 <p>We continue with the previously used multivariate normal model, but now sample a true set of size 1,000,000 cases. The easiest and most computationally convenient approach to realizing this, would be to bind the 1000 sets from <code>simdata</code> together into a long format:</p>
@@ -466,6 +471,10 @@ z           3.1297015    3 0.955 -0.0031980455</code></pre>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>                     <span class="at">expr =</span> truth[<span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span><span class="dv">1000000</span>, <span class="dv">1000</span>, <span class="at">replace =</span> <span class="cn">FALSE</span>), ], </span>
 <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>                     <span class="at">simplify =</span> <span class="cn">FALSE</span>) </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
+<hr>
+</section>
+<section id="simulate-missingness" class="level2">
+<h2 class="anchored" data-anchor-id="simulate-missingness">Simulate missingness</h2>
 <p>We now have the necessary list of simulated data sets to commence with the simulations for MCAR and MAR:</p>
 <div class="cell" data-hash="index_cache/html/dbased_899690a642292d3048c24f3f78b4e520">
 <div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>dbased <span class="ot">&lt;-</span> <span class="fu">list</span>(</span>
@@ -563,8 +572,9 @@ Instead of sampling data from a large data set or from a theoretical model, we c
 <p><span class="math display">\[r = (1+{m^{-1}}) B/\bar{U}= \infty, %(1+{m^{-1}}) B/0= \infty\]</span></p>
 <p>and the degrees of freedom <span class="math inline">\(\nu\)</span> can be set to</p>
 <p><span class="math display">\[\nu = (m-1)(1+r^{-1})^2=m-1.\]</span> In simulation, we can make use of this property by taking a single finite complete set as our comparative truth and only induce missingness in it. The induced missingness would then serve as the necessary Monte Carlo variation.</p>
-<section id="model-based-finite-populations" class="level3">
-<h3 class="anchored" data-anchor-id="model-based-finite-populations">Model-based finite populations</h3>
+<hr>
+<section id="model-based-finite-populations" class="level2">
+<h2 class="anchored" data-anchor-id="model-based-finite-populations">Model-based finite populations</h2>
 <p>To demonstrate the validity of the above approach, we will draw a single finite set from the before used multivariate normal distribution:</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>truth <span class="ot">&lt;-</span> mvtnorm<span class="sc">::</span><span class="fu">rmvnorm</span>(<span class="at">n =</span> <span class="dv">200</span>,</span>
@@ -608,7 +618,7 @@ Instead of sampling data from a large data set or from a theoretical model, we c
 </div>
 </div>
 <p>Next, we evaluate the imputations agains <code>truth</code>:</p>
-<div class="cell" data-hash="index_cache/html/mbasedevalfinite_19096cdd0d76cd753c3415f7e2d94456">
+<div class="cell">
 <div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>mbased_finite <span class="sc">%&gt;%</span> </span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">map</span>(<span class="sc">~</span>.x <span class="sc">%&gt;%</span> <span class="co"># for every missingness mechanism</span></span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">map</span>(<span class="sc">~</span>.x <span class="sc">%&gt;%</span> <span class="co"># for every simulated multiple imputation....</span></span>
@@ -636,6 +646,9 @@ Instead of sampling data from a large data set or from a theoretical model, we c
 <span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">%&gt;%</span> </span>
 <span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>      <span class="fu">Reduce</span>(<span class="st">"+"</span>, .) <span class="sc">/</span> <span class="fu">length</span>(mbased_MCAR)</span>
 <span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Note that in the above code - despite the correct variance calculations - the following estimates needed manual adjustment: <code>df</code>, <code>riv</code> and <code>p.value</code>. The line <code>pool(custom.t = ".data$b + .data$b / .data$m")</code> ensures that the estimates, total variance, standard error and the test-statistic are correctly calculated. Since all other calculations depend on those estimates, a simple manual calculation of intervals and coverages suffices.</p>
+<div class="cell" data-hash="index_cache/html/mbasedevalfinite_b745dd45d1d0a0b121f16930bdd9208b">
 <div class="cell-output cell-output-stdout">
 <pre><code>$MCAR
             m        true    estimate  std.error  statistic      p.value riv
@@ -659,10 +672,10 @@ z            2.7367795 3.2457171 0.943  0.02619466</code></pre>
 </div>
 </div>
 <p>We can see that this adjusted variance simulation set-up yields valid inferences and allows for sharp comparisons between simulation scenarios and - if applicable - simulation methods.</p>
-<p>Note that in the above code - despite the correct variance calculations - the following estimates needed manual adjustment: <code>df</code>, <code>riv</code> and <code>p.value</code>. The line <code>pool(custom.t = ".data$b + .data$b / .data$m")</code> ensures that the estimates, total variance, standard error and the test-statistic are correctly calculated. Since all other calculations depend on those estimates, a simple manual calculation of intervals and coverages suffices.</p>
+<hr>
 </section>
-<section id="design-based-finite-populations" class="level3">
-<h3 class="anchored" data-anchor-id="design-based-finite-populations">Design-based finite populations</h3>
+<section id="design-based-finite-populations" class="level2">
+<h2 class="anchored" data-anchor-id="design-based-finite-populations">Design-based finite populations</h2>
 <p>To demonstrate the validity of the finite population approach on design-based simulations, we will use one of the sampled sets from the design-based simulation section above.</p>
 <div class="cell">
 <div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>which <span class="ot">&lt;-</span> <span class="fu">sample</span>(<span class="dv">1</span><span class="sc">:</span><span class="fu">length</span>(simdata), <span class="dv">1</span>)</span>
@@ -763,47 +776,9 @@ z            2.9072684 3.126278 0.969  0.001195002</code></pre>
 <p>Please note that excluding sampling variance is not an option on real-life data sets, except for the scenario where <strong>all records</strong> from a real-life incomplete finite population are observed.</p>
 <hr>
 </section>
-<section id="session-info" class="level1">
-<h1>Session info</h1>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-stdout">
-<pre><code>R version 4.2.2 (2022-10-31)
-Platform: aarch64-apple-darwin20 (64-bit)
-Running under: macOS Monterey 12.6
-
-Matrix products: default
-BLAS:   /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRblas.0.dylib
-LAPACK: /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRlapack.dylib
-
-locale:
-[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
-
-attached base packages:
-[1] stats     graphics  grDevices utils     datasets  methods   base     
-
-other attached packages:
-[1] tibble_3.1.8   dplyr_1.0.10   magrittr_2.0.3 mvtnorm_1.1-3  furrr_0.3.0   
-[6] future_1.29.0  purrr_0.3.5    mice_3.15.0   
-
-loaded via a namespace (and not attached):
- [1] Rcpp_1.0.9        pillar_1.8.1      compiler_4.2.2    tools_4.2.2      
- [5] digest_0.6.31     jsonlite_1.8.4    evaluate_0.15     lifecycle_1.0.3  
- [9] lattice_0.20-45   pkgconfig_2.0.3   rlang_1.0.6       cli_3.4.1        
-[13] DBI_1.1.2         rstudioapi_0.13   parallel_4.2.2    yaml_2.3.5       
-[17] xfun_0.31         fastmap_1.1.0     stringr_1.5.0     knitr_1.39       
-[21] globals_0.16.2    generics_0.1.3    vctrs_0.5.1       htmlwidgets_1.5.4
-[25] grid_4.2.2        tidyselect_1.2.0  glue_1.6.2        listenv_0.8.0    
-[29] R6_2.5.1          parallelly_1.32.1 fansi_1.0.3       rmarkdown_2.14   
-[33] tidyr_1.2.1       codetools_0.2-18  backports_1.4.1   htmltools_0.5.4  
-[37] assertthat_0.2.1  utf8_1.2.2        stringi_1.7.8     broom_1.0.1      </code></pre>
-</div>
-</div>
-
-</section>
-
-
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="doc-bibliography">
+<section id="references" class="level1">
+<h1>References</h1>
+<div id="refs" class="references csl-bib-body hanging-indent" role="doc-bibliography">
 <div id="ref-magrittr" class="csl-entry" role="doc-biblioentry">
 Bache, Stefan Milton, and Hadley Wickham. 2022. <em>Magrittr: A Forward-Pipe Operator for r</em>. <a href="https://CRAN.R-project.org/package=magrittr">https://CRAN.R-project.org/package=magrittr</a>.
 </div>
@@ -846,7 +821,49 @@ Vink, Gerko, and Stef van Buuren. 2014. <span>“Pooling Multiple Imputations Wh
 <div id="ref-dplyr" class="csl-entry" role="doc-biblioentry">
 Wickham, Hadley, Romain François, Lionel Henry, and Kirill Müller. 2022. <em>Dplyr: A Grammar of Data Manipulation</em>. <a href="https://CRAN.R-project.org/package=dplyr">https://CRAN.R-project.org/package=dplyr</a>.
 </div>
-</div></section><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+</div>
+<hr>
+</section>
+<section id="session-info" class="level1">
+<h1>Session info</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>R version 4.2.2 (2022-10-31)
+Platform: aarch64-apple-darwin20 (64-bit)
+Running under: macOS Monterey 12.6
+
+Matrix products: default
+BLAS:   /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRblas.0.dylib
+LAPACK: /Library/Frameworks/R.framework/Versions/4.2-arm64/Resources/lib/libRlapack.dylib
+
+locale:
+[1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] tibble_3.1.8   dplyr_1.0.10   magrittr_2.0.3 mvtnorm_1.1-3  furrr_0.3.0   
+[6] future_1.29.0  purrr_0.3.5    mice_3.15.0   
+
+loaded via a namespace (and not attached):
+ [1] Rcpp_1.0.9        pillar_1.8.1      compiler_4.2.2    tools_4.2.2      
+ [5] digest_0.6.31     jsonlite_1.8.4    evaluate_0.15     lifecycle_1.0.3  
+ [9] lattice_0.20-45   pkgconfig_2.0.3   rlang_1.0.6       cli_3.4.1        
+[13] DBI_1.1.2         rstudioapi_0.13   parallel_4.2.2    yaml_2.3.5       
+[17] xfun_0.31         fastmap_1.1.0     stringr_1.5.0     knitr_1.39       
+[21] globals_0.16.2    generics_0.1.3    vctrs_0.5.1       htmlwidgets_1.5.4
+[25] grid_4.2.2        tidyselect_1.2.0  glue_1.6.2        listenv_0.8.0    
+[29] R6_2.5.1          parallelly_1.32.1 fansi_1.0.3       rmarkdown_2.14   
+[33] tidyr_1.2.1       codetools_0.2-18  backports_1.4.1   htmltools_0.5.4  
+[37] assertthat_0.2.1  utf8_1.2.2        stringi_1.7.8     broom_1.0.1      </code></pre>
+</div>
+</div>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
 
 <ol>
 <li id="fn1"><p>Note that for reasons of simplicity only the pooled analysis for 3 simulations and the multiply imputed samples for 3 imputations for each of those 3 simulations are shown. In real life this should be increased to obtain a more stable Monte Carlo simulation result.<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>

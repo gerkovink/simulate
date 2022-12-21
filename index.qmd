@@ -12,6 +12,10 @@ format:
 
 ---
 
+All quarto files and `R`-code to reproduce this document can be found in [this repository on GitHub](https://github.com/gerkovink/simulate_missingness). 
+
+---
+
 # Aim
 The aim of this document is to outline several strategies for simulation missingness that allow for valid inferences. Such simulation scenarios would evaluate the following multiple imputation pipeline:
 
@@ -126,7 +130,7 @@ We see indeed that the average simulated set approximates the true parameters fo
 
 ---
 
-### Simulate MCAR missingness
+## Simulate MCAR missingness
 Now, let's use a future to set up the amputation and imputation in a computationally efficient manner. We'll start with the MCAR simulation:
 ```{r modelMCAR, cache=TRUE}
 mbased_MCAR <- 
@@ -168,11 +172,11 @@ mbased_MCAR %>%
       Reduce("+", .) / length(mbased_MCAR) # add all and divide by length 
 ```
 
-The results demonstrate that the estimates are unbiased and confidence valid cf. [@neym34]. 
+The results demonstrate that the estimates are unbiased and confidence valid cf. @neym34. 
 
 ---
 
-### Simulate MAR missingness
+## Simulate MAR missingness
 We can easily replicate the above example for a right-tailed MAR mechanism by adapting the following code changes to the simulation:
 ```{r cache=TRUE}
 mbased_MAR <- 
@@ -217,6 +221,8 @@ With design-based simulation, a smaller set is usually sampled from a sufficient
 </center>
 <br>
 
+---
+
 ## Generating a sufficiently large set
 We continue with the previously used multivariate normal model, but now sample a true set of size 1,000,000 cases. The easiest and most computationally convenient approach to realizing this, would be to bind the 1000 sets from `simdata` together into a long format:
 ```{r truth, cache=TRUE}
@@ -249,6 +255,9 @@ simdata <- replicate(n = 1000,
                      simplify = FALSE) 
 ```
 
+---
+
+## Simulate missingness
 We now have the necessary list of simulated data sets to commence with the simulations for MCAR and MAR:
 
 ```{r dbased, cache=TRUE}
@@ -343,7 +352,9 @@ and the degrees of freedom $\nu$ can be set to
 $$\nu = (m-1)(1+r^{-1})^2=m-1.$$
 In simulation, we can make use of this property by taking a single finite complete set as our comparative truth and only induce missingness in it. The induced missingness would then serve as the necessary Monte Carlo variation. 
 
-### Model-based finite populations
+---
+
+## Model-based finite populations
 To demonstrate the validity of the above approach, we will draw a single finite set from the before used multivariate normal distribution:
 ```{r}
 truth <- mvtnorm::rmvnorm(n = 200,
@@ -386,7 +397,39 @@ true
 ```
 
 Next, we evaluate the imputations agains `truth`:
-```{r mbasedevalfinite, cache=TRUE}
+```{r mbasedevalfinitemock, eval = FALSE}
+mbased_finite %>% 
+  map(~.x %>% # for every missingness mechanism
+    map(~.x %>% # for every simulated multiple imputation....
+        complete("all") %>% # create a list of completed data sets
+        map(~.x %$% # for every completed data set....
+              lm(y ~ x + z) # fit linear model
+        ) %>% 
+          pool(custom.t = ".data$b + .data$b / .data$m") %>% # pool coefficients
+          .$pooled %>% # extract table of pooled coefficients
+          mutate(true = true, # add true
+                 df = m-1,  # correct df
+                 riv = Inf, # correct riv
+                 std.error = sqrt(t), # standard error
+                 statistic = estimate / std.error, # test statistic
+                 p.value = 2 * (pt(abs(statistic), 
+                                   pmax(df, 0.001), 
+                                   lower.tail = FALSE)), # correct p.value
+                 `2.5 %` = estimate - qt(.975, df) * std.error, # lower bound CI
+                 `97.5 %` = estimate + qt(.975, df) * std.error, # upper bound CI
+                 cov = `2.5 %` < true & true < `97.5 %`, # coverage
+                 bias = estimate - true) %>% # bias
+          select(term, m, true, estimate, std.error, statistic, p.value, 
+                 riv, `2.5 %`, `97.5 %`, cov, bias) %>% 
+          column_to_rownames("term") # `term` as rownames
+    ) %>% 
+      Reduce("+", .) / length(mbased_MCAR)
+  )
+```
+
+Note that in the above code - despite the correct variance calculations - the following estimates needed manual adjustment: `df`, `riv` and `p.value`. 
+The line `pool(custom.t = ".data$b + .data$b / .data$m")` ensures that the estimates, total variance, standard error and the test-statistic are correctly calculated. Since all other calculations depend on those estimates, a simple manual calculation of intervals and coverages suffices. 
+```{r mbasedevalfinite, cache=TRUE, echo = FALSE}
 mbased_finite %>% 
   map(~.x %>% # for every missingness mechanism
     map(~.x %>% # for every simulated multiple imputation....
@@ -418,10 +461,9 @@ mbased_finite %>%
 
 We can see that this adjusted variance simulation set-up yields valid inferences and allows for sharp comparisons between simulation scenarios and - if applicable - simulation methods. 
 
-Note that in the above code - despite the correct variance calculations - the following estimates needed manual adjustment: `df`, `riv` and `p.value`. 
-The line `pool(custom.t = ".data$b + .data$b / .data$m")` ensures that the estimates, total variance, standard error and the test-statistic are correctly calculated. Since all other calculations depend on those estimates, a simple manual calculation of intervals and coverages suffices. 
+---
 
-### Design-based finite populations
+## Design-based finite populations
 To demonstrate the validity of the finite population approach on design-based simulations, we will use one of the sampled sets from the design-based simulation section above. 
 ```{r}
 which <- sample(1:length(simdata), 1)
@@ -501,6 +543,13 @@ We can see that this adjusted variance simulation set-up also yields valid infer
 We have seen that it is straightforward to simulate missingness in `R`. Some of the outlined simulation scenarios may be more fitting to your aim or simulation set-up, but in all simulated cases there is the option to exclude the sampling of data sets and only sample the missingness. This may allow for a sharper comparison between imputation methods, as only the performance on solving for the missingness can impact method performance. 
 
 Please note that excluding sampling variance is not an option on real-life data sets, except for the scenario where **all records** from a real-life incomplete finite population are observed.
+
+---
+
+# References
+
+::: {#refs}
+:::
 
 ---
 
